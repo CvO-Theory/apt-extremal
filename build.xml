@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="apt-gui" default="jar" basedir=".">
+	<path id="lib">
+		<pathelement location="lib/apt.jar"/>
+		<pathelement location="lib/polco-4.7.1/polco.jar"/>
+	</path>
+
+	<target name="build-apt">
+		<ant dir="submodules/apt" target="jar"/>
+		<copy file="submodules/apt/apt.jar" tofile="lib/apt.jar"/>
+	</target>
+
+	<target name="javac" depends="build-apt">
+		<mkdir dir="classes/" />
+		<depend srcdir="src/" destdir="classes/" />
+		<javac includes="**" encoding="utf-8" destdir="classes" source="1.7" target="1.7" debug="true" includeantruntime="false">
+			<src path="src"/>
+			<classpath refid="lib"/>
+			<compilerarg value="-Xlint:all"/>
+		</javac>
+	</target>
+
+	<target name="jar" depends="javac">
+		<jar destfile="apt-extremal-light.jar">
+			<fileset dir="classes"/>
+			<zipfileset src="lib/polco-4.7.1/polco.jar"/>
+			<manifest>
+				<attribute name="Main-Class" value="uniol.aptgui.Main" />
+				<attribute name="Class-Path" value="lib/apt.jar" />
+			</manifest>
+		</jar>
+		<jar destfile="apt-extremal.jar">
+			<zipfileset src="apt-extremal-light.jar" />
+			<zipfileset src="lib/apt.jar" />
+			<manifest>
+				<attribute name="Main-Class" value="uniol.aptgui.Main" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="clean">
+		<delete dir="classes" />
+		<delete file="apt-extremal.jar" />
+		<ant dir="submodules/apt" target="clean"/>
+	</target>
+
+	<import file="build.local.xml" optional="true"/>
+</project>
