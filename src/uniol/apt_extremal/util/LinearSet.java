@@ -17,7 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-package uniol.apt_extramal.util;
+package uniol.apt_extremal.util;
 
 import java.util.Collections;
 import java.util.HashSet;
