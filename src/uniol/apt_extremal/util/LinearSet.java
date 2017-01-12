@@ -72,6 +72,22 @@ public class LinearSet {
 	}
 
 	/**
+	 * Get the constant part of this linear set.
+	 * @return the constant part.
+	 */
+	public ParikhVector getConstantPart() {
+		return base;
+	}
+
+	/**
+	 * Get the repeated part of this linear set.
+	 * @return the repeated prat.
+	 */
+	public Set<ParikhVector> getRepeatedPart() {
+		return Collections.unmodifiableSet(repeatedParts);
+	}
+
+	/**
 	 * Concatenate two linear sets
 	 * @param other The linear set to concatenate with
 	 * @return A linear set describing the result
