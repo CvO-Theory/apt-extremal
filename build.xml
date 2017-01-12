@@ -43,6 +43,7 @@
 	<target name="clean">
 		<delete dir="classes" />
 		<delete file="apt-extremal.jar" />
+		<delete file="lib/apt.jar" />
 		<ant dir="submodules/apt" target="clean"/>
 	</target>
 
