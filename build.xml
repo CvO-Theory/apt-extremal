@@ -21,19 +21,21 @@
 	</target>
 
 	<target name="jar" depends="javac">
-		<jar destfile="apt-extremal-light.jar">
+		<jar destfile="apt-extremal-light.jar" duplicate="fail">
 			<fileset dir="classes"/>
 			<zipfileset src="lib/polco-4.7.1/polco.jar"/>
 			<manifest>
-				<attribute name="Main-Class" value="uniol.aptgui.Main" />
+				<attribute name="Main-Class" value="uniol.apt.APT" />
 				<attribute name="Class-Path" value="lib/apt.jar" />
 			</manifest>
 		</jar>
-		<jar destfile="apt-extremal.jar">
+		<jar destfile="apt-extremal.jar" duplicate="fail">
 			<zipfileset src="apt-extremal-light.jar" />
-			<zipfileset src="lib/apt.jar" />
+			<zipfileset src="lib/apt.jar">
+				<exclude name="META-INF/services/uniol.apt.module.Module"/>
+			</zipfileset>
 			<manifest>
-				<attribute name="Main-Class" value="uniol.aptgui.Main" />
+				<attribute name="Main-Class" value="uniol.apt.APT" />
 			</manifest>
 		</jar>
 	</target>
