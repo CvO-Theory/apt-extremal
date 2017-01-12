@@ -30,12 +30,15 @@ import uniol.apt.adt.automaton.Symbol;
 import uniol.apt.adt.pn.PetriNet;
 import uniol.apt.adt.pn.Place;
 import uniol.apt.adt.pn.Transition;
+import uniol.apt.adt.ts.ParikhVector;
 
 import uniol.apt_extremal.util.LinearSet;
 import uniol.apt_extremal.util.PolyhedralCone;
 import uniol.apt_extremal.util.SemilinearSet;
 
 import static uniol.apt.adt.automaton.FiniteAutomatonUtility.*;
+import static uniol.apt.util.DebugUtil.debug;
+import static uniol.apt.util.DebugUtil.debugFormat;
 
 /**
  * Overapproximate a regular language by a Petri net.
@@ -67,10 +70,15 @@ public class Overapproximate {
 		}
 
 		// Generate a Petri net
+		debug("cone:");
+		debug(cone);
 		PetriNet pn = new PetriNet();
 		for (Symbol sym : alphabet)
 			pn.createTransition(sym.getEvent());
+
+		debug("rays:");
 		for (List<BigInteger> ray : cone.findExtremalRays()) {
+			debug("  ", ray);
 			Place place = pn.createPlace();
 			place.setInitialToken(ray.get(0).intValue());
 
@@ -81,6 +89,8 @@ public class Overapproximate {
 				int backwardWeight = ray.get(1 + alphabet.size() + idx).intValue();
 				pn.createFlow(transition, place, forwardWeight);
 				pn.createFlow(place, transition, backwardWeight);
+
+				idx++;
 			}
 		}
 
@@ -92,9 +102,33 @@ public class Overapproximate {
 		dea = intersection(dea, constructDFA(concatenate(sigmaStar, getAtomicLanguage(sym))));
 
 		SemilinearSet set = FiniteAutomatonToSemilinearSet.toSemilinearSet(dea);
+		debugFormat("Words ending with %s are semi-linear set %s", sym, set);
+		for (LinearSet linear : set) {
+			int[] vector = getVectorFromPV(alphabet, linear.getConstantPart());
+			vector[0] = 1;
+			vector[1 + alphabet.indexOf(sym)] -= 1;
+			cone.addInequality(vector);
 
-		System.out.println("TODO: add inequalities for " + sym);
-		System.out.println(set);
+			for (ParikhVector pv : linear.getRepeatedPart()) {
+				vector = getVectorFromPV(alphabet, pv);
+				cone.addInequality(vector);
+			}
+		}
+	}
+
+	static private int[] getVectorFromPV(List<Symbol> alphabet, ParikhVector pv) {
+		int[] vector = new int[1 + 2*alphabet.size()];
+		Arrays.fill(vector, 0);
+
+		int index = 0;
+		for (Symbol sym : alphabet) {
+			int count = pv.get(sym.getEvent());
+			vector[1 + index] = count;
+			vector[1 + alphabet.size() + index] = -count;
+
+			index++;
+		}
+		return vector;
 	}
 
 	static private PolyhedralCone getConeWithNonNegativeVariables(int numVariables) {
