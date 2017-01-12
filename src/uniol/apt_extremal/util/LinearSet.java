@@ -33,8 +33,8 @@ public class LinearSet {
 	private final ParikhVector base;
 	private final Set<ParikhVector> repeatedParts;
 
-	/** The empty linear set */
-	static public final LinearSet EMPTY = new LinearSet();
+	/** The linear set containing just the null vector */
+	static public final LinearSet NULL = new LinearSet();
 
 	/**
 	 * Create a linear set containing the given event once.

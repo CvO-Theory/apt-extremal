@@ -33,6 +33,9 @@ public class SemilinearSet {
 	/** The empty semi-linear set */
 	static public final SemilinearSet EMPTY = new SemilinearSet();
 
+	/** The semi-linear set containing just the null vector */
+	static public final SemilinearSet NULL = containing(LinearSet.NULL);
+
 	private SemilinearSet() {
 		linearSets = Collections.emptySet();
 	}
@@ -104,7 +107,7 @@ public class SemilinearSet {
 	 */
 	public SemilinearSet kleeneStar() {
 		Set<LinearSet> result = new HashSet<>();
-		result.add(LinearSet.EMPTY);
+		result.add(LinearSet.NULL);
 		for (LinearSet set : linearSets) {
 			Set<LinearSet> toAdd = new HashSet<>();
 			for (LinearSet existingSet : result) {
