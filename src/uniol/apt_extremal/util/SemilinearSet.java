@@ -21,13 +21,14 @@ package uniol.apt_extremal.util;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 /**
  * Representation of a semi-linear set. A semi-linear set is a finite union of linear sets.
  * @author Uli Schlachter
  */
-public class SemilinearSet {
+public class SemilinearSet implements Iterable<LinearSet> {
 	private final Set<LinearSet> linearSets;
 
 	/** The empty semi-linear set */
@@ -116,6 +117,11 @@ public class SemilinearSet {
 			result.addAll(toAdd);
 		}
 		return new SemilinearSet(result);
+	}
+
+	@Override
+	public Iterator<LinearSet> iterator() {
+		return Collections.unmodifiableSet(linearSets).iterator();
 	}
 
 	@Override
