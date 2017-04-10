@@ -132,7 +132,7 @@ public class PolyhedralCone {
 
 		// http://www.csb.ethz.ch/tools/polco
 		Options options = new Options();
-		options.setArithmetic(Arithmetic.bigint, Arithmetic.bigint, Arithmetic.bigint);
+		//options.setArithmetic(Arithmetic.bigint, Arithmetic.bigint, Arithmetic.bigint);
 		options.setLoglevel(Level.OFF);
 		PolcoAdapter adapter;
 		try {
