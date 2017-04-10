@@ -99,16 +99,6 @@ public class LinearSet {
 	}
 
 	/**
-	 * Create the Kleene star closure of this linear set.
-	 * @return A linear set describing the result
-	 */
-	public LinearSet kleeneStar() {
-		Set<ParikhVector> repeatedParts = new HashSet<>(this.repeatedParts);
-		repeatedParts.add(this.base);
-		return new LinearSet(new ParikhVector(), repeatedParts);
-	}
-
-	/**
 	 * Create the Kleene plus closure of this linear set.
 	 * @return A linear set describing the result
 	 */
