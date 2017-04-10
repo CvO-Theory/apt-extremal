@@ -19,10 +19,13 @@
 
 package uniol.apt_extremal.util;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
+import uniol.apt.util.PowerSet;
 
 /**
  * Representation of a semi-linear set. A semi-linear set is a finite union of linear sets.
@@ -108,13 +111,11 @@ public class SemilinearSet implements Iterable<LinearSet> {
 	 */
 	public SemilinearSet kleeneStar() {
 		Set<LinearSet> result = new HashSet<>();
-		result.add(LinearSet.NULL);
-		for (LinearSet set : linearSets) {
-			Set<LinearSet> toAdd = new HashSet<>();
-			for (LinearSet existingSet : result) {
-				toAdd.add(existingSet.concatenate(set).kleenePlus());
-			}
-			result.addAll(toAdd);
+		for (Collection<LinearSet> subset : new PowerSet<>(linearSets)) {
+			LinearSet set = LinearSet.NULL;
+			for (LinearSet entry : subset)
+				set = set.concatenate(entry);
+			result.add(set.kleenePlus());
 		}
 		return new SemilinearSet(result);
 	}
