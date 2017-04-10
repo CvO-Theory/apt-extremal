@@ -93,8 +93,6 @@ public class FiniteAutomatonToSemilinearSet {
 				if (state1ToNew == null || newToState2 == null)
 					continue;
 
-				// If newState can reach itself again, we can go through that loop any number of times.
-				// However, iterating epsilon doesn't make any sense
 				assert newToNew != null : "Each state must reach itself at least via epsilon";
 
 				SemilinearSet newSet = state1ToNew.concatenate(newToNew.kleeneStar().concatenate(newToState2));
