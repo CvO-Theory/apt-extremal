@@ -46,18 +46,36 @@ import uniol.apt_extremal.util.PolyhedralCone;
  */
 public class OverapproximateLTS {
 
-	static public PetriNet overapproximateAndSimplifyPN(TransitionSystem ts) {
+	/**
+	 * Calculate the minimal Petri net over-approximation containing all extremal regions of the given lts.
+	 * @param ts The lts to over-approximate.
+	 * @param pure Should only pure regions be considered?
+	 * @return The minimal over-approximation containing all extremal regions.
+	 */
+	static public PetriNet overapproximatePN(TransitionSystem ts, boolean pure) {
 		RegionUtility utility = new RegionUtility(ts);
-		return SynthesizePN.synthesizePetriNet(utility, overapproximateAndSimplify(utility));
+		return SynthesizePN.synthesizePetriNet(utility, pure ? overapproximatePure(utility) : overapproximateImpure(utility));
+	}
+
+	/**
+	 * Calculate the minimal Petri net over-approximation containing some of the extremal regions of the given lts.
+	 * @param ts The lts to over-approximate.
+	 * @param pure Should only pure regions be considered?
+	 * @return The minimal over-approximation containing some extremal regions.
+	 */
+	static public PetriNet overapproximateAndSimplifyPN(TransitionSystem ts, boolean pure) {
+		RegionUtility utility = new RegionUtility(ts);
+		return SynthesizePN.synthesizePetriNet(utility, overapproximateAndSimplify(utility, pure));
 	}
 
 	/**
 	 * Calculate the extremal regions of the given lts.
 	 * @param ts The lts to over-approximate.
+	 * @param pure Should only pure regions be considered?
 	 * @return A set of extremal regions
 	 */
-	static public Set<Region> overapproximateAndSimplify(RegionUtility utility) {
-		Set<Region> result = overapproximate(utility);
+	static public Set<Region> overapproximateAndSimplify(RegionUtility utility, boolean pure) {
+		Set<Region> result = pure ? overapproximatePure(utility) : overapproximateImpure(utility);
 		SynthesizePN.minimizeRegions(utility, result, false);
 		return result;
 	}
@@ -67,7 +85,7 @@ public class OverapproximateLTS {
 	 * @param ts The lts to over-approximate.
 	 * @return A set of extremal regions
 	 */
-	static public Set<Region> overapproximate(RegionUtility utility) {
+	static public Set<Region> overapproximateImpure(RegionUtility utility) {
 		TransitionSystem ts = utility.getTransitionSystem();
 		SpanningTree<TransitionSystem, Arc, State> tree = utility.getSpanningTree();
 		int numberOfEvents = utility.getNumberOfEvents();
@@ -79,7 +97,7 @@ public class OverapproximateLTS {
 		// Result must be cycle-consistent: After a cycle we reach the same marking again
 		for (Arc chord : tree.getChords()) {
 			try {
-				cone.addEquation(toList(0, utility.getParikhVectorForEdge(chord)));
+				cone.addEquation(toListImpure(0, utility.getParikhVectorForEdge(chord)));
 			} catch (UnreachableException e) {
 				throw new AssertionError("A chord by definition belongs to reachable nodes, "
 						+ "yet one of them was unreachable", e);
@@ -90,7 +108,7 @@ public class OverapproximateLTS {
 		for (State state : ts.getNodes()) {
 			List<BigInteger> inequality;
 			try {
-				inequality = toList(1, utility.getReachingParikhVector(state));
+				inequality = toListImpure(1, utility.getReachingParikhVector(state));
 			} catch (UnreachableException e) {
 				// Just skip unreachable states
 				continue;
@@ -107,22 +125,82 @@ public class OverapproximateLTS {
 			}
 		}
 
-		return calculateExtremalRegions(utility, cone);
+		return calculateExtremalRegions(utility, cone, false);
 	}
 
-	static private Set<Region> calculateExtremalRegions(RegionUtility utility, PolyhedralCone cone) {
+	/**
+	 * Calculate the pure extremal regions of the given lts.
+	 * @param ts The lts to over-approximate.
+	 * @return A set of extremal regions
+	 */
+	static public Set<Region> overapproximatePure(RegionUtility utility) {
+		TransitionSystem ts = utility.getTransitionSystem();
+		SpanningTree<TransitionSystem, Arc, State> tree = utility.getSpanningTree();
+		int numberOfEvents = utility.getNumberOfEvents();
+
+		// Calculate the polyhedral cone
+		PolyhedralCone cone = new PolyhedralCone(1 + numberOfEvents);
+
+		// require initial marking to be non-negative
+		int[] initialInequality = new int[1 + numberOfEvents];
+		Arrays.fill(initialInequality, 0);
+		initialInequality[0] = 1;
+		cone.addInequality(initialInequality);
+
+		// Result must be cycle-consistent: After a cycle we reach the same marking again
+		for (Arc chord : tree.getChords()) {
+			try {
+				cone.addEquation(toListPure(0, utility.getParikhVectorForEdge(chord)));
+			} catch (UnreachableException e) {
+				throw new AssertionError("A chord by definition belongs to reachable nodes, "
+						+ "yet one of them was unreachable", e);
+			}
+		}
+
+		// No existing arc may be disabled
+		for (State state : ts.getNodes()) {
+			List<BigInteger> inequality;
+			try {
+				inequality = toListPure(1, utility.getReachingParikhVector(state));
+			} catch (UnreachableException e) {
+				// Just skip unreachable states
+				continue;
+			}
+			for (String event : utility.getEventList()) {
+				if (!SeparationUtility.isEventEnabled(state, event))
+					continue;
+
+				List<BigInteger> inequality2 = new ArrayList<>(inequality);
+				int idx = 1 + utility.getEventIndex(event);
+				inequality2.set(idx, inequality2.get(idx).add(BigInteger.ONE));
+
+				cone.addInequality(inequality2);
+			}
+		}
+
+		return calculateExtremalRegions(utility, cone, true);
+	}
+
+	static private Set<Region> calculateExtremalRegions(RegionUtility utility, PolyhedralCone cone, boolean pure) {
 		Set<Region> result = new HashSet<>();
 		int numberOfEvents = utility.getNumberOfEvents();
 		for (List<BigInteger> ray : cone.findExtremalRays()) {
-			result.add(new Region.Builder(utility,
-						ray.subList(numberOfEvents+1, 2*numberOfEvents+1),
-						ray.subList(1, numberOfEvents+1))
-					.withInitialMarking(ray.get(0)));
+			if (!pure) {
+				result.add(new Region.Builder(utility,
+							ray.subList(numberOfEvents+1, 2*numberOfEvents+1),
+							ray.subList(1, numberOfEvents+1))
+						.withInitialMarking(ray.get(0)));
+			} else {
+				Region.Builder builder = new Region.Builder(utility);
+				for (int index = 0; index < numberOfEvents; index++)
+					builder.addWeightOn(index, ray.get(index + 1));
+				result.add(builder.withInitialMarking(ray.get(0)));
+			}
 		}
 		return result;
 	}
 
-	static private List<BigInteger> toList(int initial, List<BigInteger> weights) {
+	static private List<BigInteger> toListImpure(int initial, List<BigInteger> weights) {
 		List<BigInteger> result = new ArrayList<>(1 + 2*weights.size());
 		List<BigInteger> part2 = new ArrayList<>(weights.size());
 
@@ -132,6 +210,14 @@ public class OverapproximateLTS {
 			part2.add(i.negate());
 		}
 		result.addAll(part2);
+		return result;
+	}
+
+	static private List<BigInteger> toListPure(int initial, List<BigInteger> weights) {
+		List<BigInteger> result = new ArrayList<>(1 + weights.size());
+
+		result.add(BigInteger.valueOf(initial));
+		result.addAll(weights);
 		return result;
 	}
 

@@ -42,14 +42,21 @@ public class OverapproximateLTSTest {
 	@Test
 	public void testSingleStateTS() {
 		TransitionSystem ts = TestTSCollection.getSingleStateTS();
-		assertThat(OverapproximateLTS.overapproximate(new RegionUtility(ts)),
+		assertThat(OverapproximateLTS.overapproximateImpure(new RegionUtility(ts)),
+				contains(regionWithInitialMarking(1)));
+	}
+
+	@Test
+	public void testSingleStateTSPure() {
+		TransitionSystem ts = TestTSCollection.getSingleStateTS();
+		assertThat(OverapproximateLTS.overapproximatePure(new RegionUtility(ts)),
 				contains(regionWithInitialMarking(1)));
 	}
 
 	@Test
 	public void testSingleStateWithUnreachableTS() {
 		TransitionSystem ts = TestTSCollection.getSingleStateWithUnreachableTS();
-		assertThat(OverapproximateLTS.overapproximate(new RegionUtility(ts)),
+		assertThat(OverapproximateLTS.overapproximateImpure(new RegionUtility(ts)),
 				containsInAnyOrder(
 					both(regionWithInitialMarking(1)).and(pureRegionWithWeight("NotA", 0)),
 					both(regionWithInitialMarking(0)).and(pureRegionWithWeight("NotA", 1)),
@@ -57,28 +64,53 @@ public class OverapproximateLTSTest {
 	}
 
 	@Test
+	public void testSingleStateWithUnreachableTSPure() {
+		TransitionSystem ts = TestTSCollection.getSingleStateWithUnreachableTS();
+		assertThat(OverapproximateLTS.overapproximatePure(new RegionUtility(ts)),
+				contains(both(regionWithInitialMarking(1)).and(pureRegionWithWeight("NotA", 0))));
+				// No idea why polco does not produce the following (perhaps it does not handle
+				// unconstrained variables well?)
+				//both(regionWithInitialMarking(0)).and(pureRegionWithWeight("NotA", 1)),
+				//both(regionWithInitialMarking(0)).and(pureRegionWithWeight("NotA", -1))));
+	}
+
+	@Test
 	public void testSingleStateTSWithLoop() {
 		TransitionSystem ts = TestTSCollection.getSingleStateTSWithLoop();
-		assertThat(OverapproximateLTS.overapproximate(new RegionUtility(ts)),
+		assertThat(OverapproximateLTS.overapproximateImpure(new RegionUtility(ts)),
 				containsInAnyOrder(
 					both(regionWithInitialMarking(1)).and(pureRegionWithWeight("a", 0)),
 					both(regionWithInitialMarking(1)).and(impureRegionWithWeight("a", 1, 1))));
 	}
 
 	@Test
+	public void testSingleStateTSWithLoopPure() {
+		TransitionSystem ts = TestTSCollection.getSingleStateTSWithLoop();
+		assertThat(OverapproximateLTS.overapproximatePure(new RegionUtility(ts)),
+				contains(both(regionWithInitialMarking(1)).and(pureRegionWithWeight("a", 0))));
+	}
+
+	@Test
 	public void testTwoStateCycleSameLabelTS() {
 		TransitionSystem ts = TestTSCollection.getTwoStateCycleSameLabelTS();
-		assertThat(OverapproximateLTS.overapproximate(new RegionUtility(ts)),
+		assertThat(OverapproximateLTS.overapproximateImpure(new RegionUtility(ts)),
 				containsInAnyOrder(
 					both(regionWithInitialMarking(1)).and(pureRegionWithWeight("a", 0)),
 					both(regionWithInitialMarking(1)).and(impureRegionWithWeight("a", 1, 1))));
+	}
+
+	@Test
+	public void testTwoStateCycleSameLabelTSPure() {
+		TransitionSystem ts = TestTSCollection.getTwoStateCycleSameLabelTS();
+		assertThat(OverapproximateLTS.overapproximatePure(new RegionUtility(ts)),
+				contains(both(regionWithInitialMarking(1)).and(pureRegionWithWeight("a", 0))));
 	}
 
 	@Test
 	public void testThreeStatesTwoEdgesTS() {
 		TransitionSystem ts = TestTSCollection.getThreeStatesTwoEdgesTS();
 		List<String> alphabet = Arrays.asList("a", "b");
-		assertThat(OverapproximateLTS.overapproximate(new RegionUtility(ts)),
+		assertThat(OverapproximateLTS.overapproximateImpure(new RegionUtility(ts)),
 				containsInAnyOrder(
 					// { init=0, 0:a:0, 0:b:1 },
 					both(regionWithInitialMarking(0)).and(pureRegionWithWeights(alphabet, Arrays.asList(ZERO, ONE))),
@@ -95,10 +127,24 @@ public class OverapproximateLTSTest {
 	}
 
 	@Test
+	public void testThreeStatesTwoEdgesTSPure() {
+		TransitionSystem ts = TestTSCollection.getThreeStatesTwoEdgesTS();
+		List<String> alphabet = Arrays.asList("a", "b");
+		assertThat(OverapproximateLTS.overapproximatePure(new RegionUtility(ts)),
+				containsInAnyOrder(
+					// { init=0, 0:a:0, 0:b:1 },
+					both(regionWithInitialMarking(0)).and(pureRegionWithWeights(alphabet, Arrays.asList(ZERO, ONE))),
+					// { init=1, 1:a:0, 1:b:0 },
+					both(regionWithInitialMarking(1)).and(pureRegionWithWeights(alphabet, Arrays.asList(M_ONE, M_ONE))),
+					// { init=0, 0:a:1, 0:b:0 },
+					both(regionWithInitialMarking(0)).and(pureRegionWithWeights(alphabet, Arrays.asList(ONE, ZERO)))));
+	}
+
+	@Test
 	public void testPathTS() {
 		TransitionSystem ts = TestTSCollection.getPathTS();
 		List<String> alphabet = Arrays.asList("a", "b", "c");
-		assertThat(OverapproximateLTS.overapproximate(new RegionUtility(ts)),
+		assertThat(OverapproximateLTS.overapproximateImpure(new RegionUtility(ts)),
 				containsInAnyOrder(
 					// { init=1, 0:a:0, 0:b:0, 1:c:0 }
 					both(regionWithInitialMarking(1)).and(pureRegionWithWeights(alphabet, Arrays.asList(ZERO, ZERO, M_ONE))),
@@ -124,6 +170,22 @@ public class OverapproximateLTSTest {
 					both(regionWithInitialMarking(0)).and(pureRegionWithWeights(alphabet, Arrays.asList(ONE, ZERO, ZERO))),
 					// { init=0, 0:a:1, 1:b:1, 0:c:0 }
 					both(regionWithInitialMarking(0)).and(impureRegionWithWeights(alphabet, Arrays.asList(ZERO, ONE, ONE, ONE, ZERO, ZERO))),
+					// { init=0, 0:a:0, 0:b:0, 0:c:1 }
+					both(regionWithInitialMarking(0)).and(pureRegionWithWeights(alphabet, Arrays.asList(ZERO, ZERO, ONE)))));
+	}
+
+	@Test
+	public void testPathTSPure() {
+		TransitionSystem ts = TestTSCollection.getPathTS();
+		List<String> alphabet = Arrays.asList("a", "b", "c");
+		assertThat(OverapproximateLTS.overapproximatePure(new RegionUtility(ts)),
+				containsInAnyOrder(
+					// { init=1, 0:a:0, 0:b:0, 1:c:0 }
+					both(regionWithInitialMarking(1)).and(pureRegionWithWeights(alphabet, Arrays.asList(ZERO, ZERO, M_ONE))),
+					// { init=0, 0:a:1, 0:b:0, 1:c:0 }
+					both(regionWithInitialMarking(0)).and(pureRegionWithWeights(alphabet, Arrays.asList(ONE, ZERO, M_ONE))),
+					// { init=1, 1:a:0, 0:b:0, 0:c:1 }
+					both(regionWithInitialMarking(1)).and(pureRegionWithWeights(alphabet, Arrays.asList(M_ONE, ZERO, ONE))),
 					// { init=0, 0:a:0, 0:b:0, 0:c:1 }
 					both(regionWithInitialMarking(0)).and(pureRegionWithWeights(alphabet, Arrays.asList(ZERO, ZERO, ONE)))));
 	}
