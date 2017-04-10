@@ -44,7 +44,7 @@ import static uniol.apt.util.DebugUtil.debugFormat;
  * Overapproximate a regular language by a Petri net.
  * @author Uli Schlachter
  */
-public class Overapproximate {
+public class OverapproximateLanguage {
 
 	/**
 	 * Calculate the minimal Petri net overapproximation of the regular language represented by the given finite

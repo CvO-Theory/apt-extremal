@@ -36,7 +36,7 @@ import uniol.apt.module.exception.ModuleException;
  * @author Uli Schlachter
  */
 @AptModule
-public class OverapproximateModule extends AbstractModule implements Module {
+public class OverapproximateLanguageModule extends AbstractModule implements Module {
 	@Override
 	public String getShortDescription() {
 		return "Calculate the minimal Petri net overapproximation of a regular language";
@@ -61,7 +61,7 @@ public class OverapproximateModule extends AbstractModule implements Module {
 	@Override
 	public void run(ModuleInput input, ModuleOutput output) throws ModuleException {
 		FiniteAutomaton language = input.getParameter("language", FiniteAutomaton.class);
-		PetriNet pn = Overapproximate.overapproximate(language);
+		PetriNet pn = OverapproximateLanguage.overapproximate(language);
 		output.setReturnValue("pn", PetriNet.class, pn);
 	}
 
