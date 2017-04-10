@@ -1,4 +1,5 @@
 apt-extremal.jar
 apt-extremal-light.jar
 classes/
+test-classes/
 lib/apt.jar
