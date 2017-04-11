@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -59,7 +60,9 @@ public class PolyhedralCone {
 	 */
 	public void addEquation(Collection<BigInteger> coefficients) {
 		assert coefficients.size() == numVariables;
-		equations.add(new ArrayList<>(coefficients));
+		// We have to remove the trivial equation 0 = 0
+		if (Collections.frequency(coefficients, BigInteger.ZERO) != numVariables)
+			equations.add(new ArrayList<>(coefficients));
 	}
 
 	/**
