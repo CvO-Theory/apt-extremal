@@ -114,8 +114,8 @@ public class SemilinearSet implements Iterable<LinearSet> {
 		for (Collection<LinearSet> subset : new PowerSet<>(linearSets)) {
 			LinearSet set = LinearSet.NULL;
 			for (LinearSet entry : subset)
-				set = set.concatenate(entry);
-			result.add(set.kleenePlus());
+				set = set.concatenate(entry.kleenePlus());
+			result.add(set);
 		}
 		return new SemilinearSet(result);
 	}

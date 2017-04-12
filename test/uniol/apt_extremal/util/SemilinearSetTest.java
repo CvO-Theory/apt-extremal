@@ -84,7 +84,7 @@ public class SemilinearSetTest {
 					LinearSet.NULL,
 					a2.kleenePlus(),
 					b3.kleenePlus(),
-					a2.concatenate(b3).kleenePlus()));
+					a2.kleenePlus().concatenate(b3.kleenePlus())));
 	}
 
 	@Test
