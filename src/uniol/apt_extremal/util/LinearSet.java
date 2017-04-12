@@ -26,7 +26,9 @@ import java.util.Set;
 import uniol.apt.adt.ts.ParikhVector;
 
 /**
- * Representation of a linear set base * repeated^* of Parikh vectors.
+ * Representation of a linear set of Parikh vectors. A set is linear if there is a vector <pre>c</pre> (called the
+ * constant) and a finite set of vectors <pre>p_1, ..., p_n</pre> (called the periods) so that any element of the set
+ * can be described as <pre>c + \sum k_i*p_i</pre> for some natural numbers <pre>k_i</pre>.
  * @author Uli Schlachter
  */
 public class LinearSet {
