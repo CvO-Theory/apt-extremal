@@ -86,8 +86,8 @@ public class SemilinearSetEquivalenceMatcher extends TypeSafeDiagnosingMatcher<S
 			// periods of the larger set and if the base vector of the smaller set can be represented by the
 			// larger set. The word 'surely' in the previous sentence should indicate this is just a
 			// heuristic: There are linear sets in a subset relationship where this check fails.
-			if (lset.getRepeatedPart().containsAll(subset.getRepeatedPart()) &&
-					contains(lset, subset.getConstantPart()))
+			if (lset.getPeriods().containsAll(subset.getPeriods()) &&
+					contains(lset, subset.getConstant()))
 				return null;
 		}
 
@@ -97,14 +97,14 @@ public class SemilinearSetEquivalenceMatcher extends TypeSafeDiagnosingMatcher<S
 
 		Deque<ParikhVector> unhandled = new ArrayDeque<>();
 		Set<ParikhVector> handled = new HashSet<>();
-		unhandled.add(subset.getConstantPart());
+		unhandled.add(subset.getConstant());
 
 		while (!unhandled.isEmpty()) {
 			ParikhVector pv = unhandled.remove();
 			if (!contains(set, pv))
 				return pv;
 
-			for (ParikhVector period : subset.getRepeatedPart()) {
+			for (ParikhVector period : subset.getPeriods()) {
 				ParikhVector next = pv.add(period);
 				if (shouldCheck(next) && handled.add(next))
 					unhandled.add(next);
@@ -132,17 +132,17 @@ public class SemilinearSetEquivalenceMatcher extends TypeSafeDiagnosingMatcher<S
 
 	static private boolean contains(LinearSet set, ParikhVector pv) {
 		// First some cheap checks
-		ParikhVector constant = set.getConstantPart();
+		ParikhVector constant = set.getConstant();
 		if (constant.equals(pv))
 			return true;
 		if (constant.tryCompareTo(pv) >= 0)
 			// Either incomparable (0) or greater (1), in both cases even larger vectors cannot be equal
 			return false;
-		if (set.getRepeatedPart().isEmpty())
+		if (set.getPeriods().isEmpty())
 			return false;
 
 		// Assign indices to each period vector
-		List<ParikhVector> periods = new ArrayList<>(set.getRepeatedPart());
+		List<ParikhVector> periods = new ArrayList<>(set.getPeriods());
 
 		// Calculate the total alphabet of the Parikh vectors (yuk!)
 		Set<String> alphabet = new HashSet<>();

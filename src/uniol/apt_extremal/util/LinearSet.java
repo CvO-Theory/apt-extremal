@@ -74,18 +74,18 @@ public class LinearSet {
 	}
 
 	/**
-	 * Get the constant part of this linear set.
+	 * Get the constant of this linear set.
 	 * @return the constant part.
 	 */
-	public ParikhVector getConstantPart() {
+	public ParikhVector getConstant() {
 		return base;
 	}
 
 	/**
-	 * Get the repeated part of this linear set.
-	 * @return the repeated prat.
+	 * Get the periods of this linear set.
+	 * @return the repeated part.
 	 */
-	public Set<ParikhVector> getRepeatedPart() {
+	public Set<ParikhVector> getPeriods() {
 		return Collections.unmodifiableSet(repeatedParts);
 	}
 

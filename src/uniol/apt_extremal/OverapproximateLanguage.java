@@ -248,9 +248,9 @@ public class OverapproximateLanguage {
 		SemilinearSet set = FiniteAutomatonToSemilinearSet.toSemilinearSet(dea);
 		debugFormat("Words ending with %s are semi-linear set %s", sym, set);
 		for (LinearSet linear : set) {
-			cone.addInequality(mode.getVectorEnablingWord(alphabet, linear.getConstantPart(), sym));
+			cone.addInequality(mode.getVectorEnablingWord(alphabet, linear.getConstant(), sym));
 
-			for (ParikhVector pv : linear.getRepeatedPart()) {
+			for (ParikhVector pv : linear.getPeriods()) {
 				int[] vector = mode.getVectorFromPV(alphabet, pv);
 				cone.addInequality(vector);
 				if (options.isBounded()) {

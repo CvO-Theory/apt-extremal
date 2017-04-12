@@ -29,8 +29,8 @@ public class LinearSetTest {
 	@Test
 	public void testNullSet() {
 		LinearSet set = LinearSet.NULL;
-		assertThat(set.getConstantPart(), equalTo(new ParikhVector()));
-		assertThat(set.getRepeatedPart(), empty());
+		assertThat(set.getConstant(), equalTo(new ParikhVector()));
+		assertThat(set.getPeriods(), empty());
 	}
 
 	@Test
@@ -38,18 +38,18 @@ public class LinearSetTest {
 		LinearSet set1 = LinearSet.containingEvent("a");
 		LinearSet set3 = LinearSet.containingEvent("a", 3);
 
-		assertThat(set1.getConstantPart(), equalTo(new ParikhVector("a")));
-		assertThat(set1.getRepeatedPart(), empty());
+		assertThat(set1.getConstant(), equalTo(new ParikhVector("a")));
+		assertThat(set1.getPeriods(), empty());
 
-		assertThat(set3.getConstantPart(), equalTo(new ParikhVector("a", "a", "a")));
-		assertThat(set3.getRepeatedPart(), empty());
+		assertThat(set3.getConstant(), equalTo(new ParikhVector("a", "a", "a")));
+		assertThat(set3.getPeriods(), empty());
 	}
 
 	@Test
 	public void testKleenePlus() {
 		LinearSet set = LinearSet.containingEvent("a", 2).kleenePlus();
-		assertThat(set.getConstantPart(), equalTo(new ParikhVector("a", "a")));
-		assertThat(set.getRepeatedPart(), contains(new ParikhVector("a", "a")));
+		assertThat(set.getConstant(), equalTo(new ParikhVector("a", "a")));
+		assertThat(set.getPeriods(), contains(new ParikhVector("a", "a")));
 	}
 
 	@Test
@@ -58,8 +58,8 @@ public class LinearSetTest {
 		LinearSet set2 = LinearSet.containingEvent("b");
 		LinearSet result = set1.concatenate(set2);
 
-		assertThat(result.getConstantPart(), equalTo(new ParikhVector("a", "a", "b")));
-		assertThat(result.getRepeatedPart(), contains(new ParikhVector("a", "a")));
+		assertThat(result.getConstant(), equalTo(new ParikhVector("a", "a", "b")));
+		assertThat(result.getPeriods(), contains(new ParikhVector("a", "a")));
 	}
 
 	@Test
