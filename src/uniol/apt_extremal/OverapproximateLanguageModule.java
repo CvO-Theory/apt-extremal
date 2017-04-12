@@ -19,7 +19,6 @@
 
 package uniol.apt_extremal;
 
-import uniol.apt.util.Pair;
 import uniol.apt.adt.automaton.FiniteAutomaton;
 import uniol.apt.adt.pn.PetriNet;
 import uniol.apt.module.AbstractModule;
@@ -31,6 +30,9 @@ import uniol.apt.module.ModuleInputSpec;
 import uniol.apt.module.ModuleOutput;
 import uniol.apt.module.ModuleOutputSpec;
 import uniol.apt.module.exception.ModuleException;
+
+import uniol.apt_extremal.OverapproximateLanguage.Mode;
+import uniol.apt_extremal.OverapproximateLanguage.Options;
 
 /**
  * Provide regular language overapproximation as a module.
@@ -68,12 +70,9 @@ public class OverapproximateLanguageModule extends AbstractModule implements Mod
 
 	@Override
 	public void run(ModuleInput input, ModuleOutput output) throws ModuleException {
-		Pair<Boolean, Boolean> options = parseOptions(input.getParameter("options", String.class));
+		Options options = parseOptions(input.getParameter("options", String.class));
 		FiniteAutomaton language = input.getParameter("language", FiniteAutomaton.class);
-		boolean bounded = options.getSecond();
-		OverapproximateLanguage.Mode mode = options.getFirst() ? OverapproximateLanguage.Mode.PURE
-			: OverapproximateLanguage.Mode.IMPURE;
-		PetriNet pn = OverapproximateLanguage.overapproximate(language, mode, bounded);
+		PetriNet pn = OverapproximateLanguage.overapproximate(language, options);
 		output.setReturnValue("pn", PetriNet.class, pn);
 	}
 
@@ -82,30 +81,28 @@ public class OverapproximateLanguageModule extends AbstractModule implements Mod
 		return new Category[]{Category.PN};
 	}
 
-	static private Pair<Boolean, Boolean> parseOptions(String options) throws ModuleException {
+	static private Options parseOptions(String options) throws ModuleException {
 		// Explicitly allow empty string
 		options = options.trim();
 		if (options.isEmpty())
-			return new Pair<Boolean, Boolean>(false, false);
+			return new Options();
 
-		boolean pure = false;
-		boolean bounded = false;
-
+		Options opts = new Options();
 		for (String opt : options.split(",")) {
 			switch (opt.trim().toLowerCase()) {
 				case "none":
 					break;
 				case "pure":
-					pure = true;
+					opts = opts.setMode(Mode.PURE);
 					break;
 				case "bounded":
-					bounded = true;
+					opts = opts.setBounded(true);
 					break;
 				default:
 					throw new ModuleException("Cannot parse '" + opt + "': Unknown option");
 			}
 		}
-		return new Pair<Boolean, Boolean>(pure, bounded);
+		return opts;
 	}
 }
 

@@ -168,15 +168,45 @@ public class OverapproximateLanguage {
 		abstract protected void createPlace(List<Symbol> alphabet, List<BigInteger> vector, PetriNet pn);
 	}
 
+	static class Options {
+		final private Mode mode;
+		final private boolean bounded;
+
+		private Options(Mode mode, boolean bounded) {
+			this.mode = mode;
+			this.bounded = bounded;
+		}
+
+		public Options() {
+			this(Mode.IMPURE, false);
+		}
+
+		public Mode getMode() {
+			return mode;
+		}
+
+		public boolean isBounded() {
+			return bounded;
+		}
+
+		public Options setMode(Mode mode) {
+			return new Options(mode, this.bounded);
+		}
+
+		public Options setBounded(boolean bounded) {
+			return new Options(this.mode, bounded);
+		}
+	}
+
 	/**
 	 * Calculate the minimal Petri net overapproximation of the regular language represented by the given finite
 	 * automaton. The resulting Petri net is unique up to language equivalence.
 	 * @param automaton The automaton to overapproximate.
-	 * @param mode The mode to use for generating the Petri net.
-	 * @param bounded Only consider bounded Petri nets
+	 * @param options The options to use for synthesis
 	 * @return An overapproximating Petri net.
 	 */
-	static public PetriNet overapproximate(FiniteAutomaton automaton, Mode mode, boolean bounded) {
+	static public PetriNet overapproximate(FiniteAutomaton automaton, Options options) {
+		Mode mode = options.getMode();
 		// Prepare the automatons
 		DeterministicFiniteAutomaton dea = constructDFA(prefixClosure(automaton));
 		List<Symbol> alphabet = new ArrayList<>(dea.getAlphabet());
@@ -190,7 +220,7 @@ public class OverapproximateLanguage {
 		// Calculate the polyhedral cone
 		PolyhedralCone cone = mode.createCone(alphabet);
 		for (Symbol sym : alphabet) {
-			addInequalitiesFor(cone, mode, alphabet, dea, sigmaStar, sym, bounded);
+			addInequalitiesFor(cone, options, alphabet, dea, sigmaStar, sym);
 		}
 
 		// Generate a Petri net
@@ -209,8 +239,9 @@ public class OverapproximateLanguage {
 		return pn;
 	}
 
-	static private void addInequalitiesFor(PolyhedralCone cone, Mode mode, List<Symbol> alphabet,
-			DeterministicFiniteAutomaton dea, FiniteAutomaton sigmaStar, Symbol sym, boolean bounded) {
+	static private void addInequalitiesFor(PolyhedralCone cone, Options options, List<Symbol> alphabet,
+			DeterministicFiniteAutomaton dea, FiniteAutomaton sigmaStar, Symbol sym) {
+		Mode mode = options.getMode();
 		// Calculate an automaton for all words ending with the given symbol
 		dea = intersection(dea, constructDFA(concatenate(sigmaStar, getAtomicLanguage(sym))));
 
@@ -222,7 +253,7 @@ public class OverapproximateLanguage {
 			for (ParikhVector pv : linear.getRepeatedPart()) {
 				int[] vector = mode.getVectorFromPV(alphabet, pv);
 				cone.addInequality(vector);
-				if (bounded) {
+				if (options.isBounded()) {
 					for (int i = 0; i < vector.length; i++)
 						vector[i] = -vector[i];
 					cone.addInequality(vector);
