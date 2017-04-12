@@ -46,13 +46,136 @@ import static uniol.apt.util.DebugUtil.debugFormat;
  */
 public class OverapproximateLanguage {
 
+	public enum Mode {
+		PURE {
+			@Override
+			protected PolyhedralCone createCone(List<Symbol> alphabet) {
+				int numVariables = 1 + alphabet.size();
+				PolyhedralCone cone = new PolyhedralCone(numVariables);
+				int[] inequality = new int[numVariables];
+				Arrays.fill(inequality, 0);
+				inequality[0] = 1;
+				cone.addInequality(inequality);
+
+				return cone;
+			}
+
+			@Override
+			protected int[] getVectorFromPV(List<Symbol> alphabet, ParikhVector pv) {
+				int[] vector = new int[1 + alphabet.size()];
+				vector[0] = 0;
+
+				int index = 0;
+				for (Symbol sym : alphabet) {
+					int count = pv.get(sym.getEvent());
+					vector[1 + index] = count;
+
+					index++;
+				}
+				return vector;
+			}
+
+			@Override
+			protected int[] getVectorEnablingWord(List<Symbol> alphabet, ParikhVector pv, Symbol toEnable) {
+				int[] vector = getVectorFromPV(alphabet, pv);
+				vector[0] = 1;
+				return vector;
+			}
+
+			@Override
+			protected void createPlace(List<Symbol> alphabet, List<BigInteger> vector, PetriNet pn) {
+				Place place = pn.createPlace();
+				place.setInitialToken(vector.get(0).intValue());
+
+				int idx = 0;
+				for (Symbol sym : alphabet) {
+					Transition transition = pn.getTransition(sym.getEvent());
+					int weight = vector.get(1 + idx).intValue();
+					if (weight > 0)
+						pn.createFlow(transition, place, weight);
+					if (weight < 0)
+						pn.createFlow(place, transition, -weight);
+
+					idx++;
+				}
+			}
+		},
+		IMPURE {
+			@Override
+			protected PolyhedralCone createCone(List<Symbol> alphabet) {
+				int numVariables = 1 + 2*alphabet.size();
+				PolyhedralCone cone = new PolyhedralCone(numVariables);
+				int[] inequality = new int[numVariables];
+				Arrays.fill(inequality, 0);
+
+				for (int i = 0; i < numVariables; i++) {
+					inequality[i] = 1;
+					cone.addInequality(inequality);
+					inequality[i] = 0;
+				}
+
+				return cone;
+			}
+
+			@Override
+			protected int[] getVectorFromPV(List<Symbol> alphabet, ParikhVector pv) {
+				int[] vector = new int[1 + 2*alphabet.size()];
+				vector[0] = 0;
+
+				int index = 0;
+				for (Symbol sym : alphabet) {
+					int count = pv.get(sym.getEvent());
+					vector[1 + index] = count;
+					vector[1 + alphabet.size() + index] = -count;
+
+					index++;
+				}
+				return vector;
+			}
+
+			@Override
+			protected int[] getVectorEnablingWord(List<Symbol> alphabet, ParikhVector pv, Symbol toEnable) {
+				int[] vector = getVectorFromPV(alphabet, pv);
+				vector[0] = 1;
+				vector[1 + alphabet.indexOf(toEnable)] -= 1;
+				return vector;
+			}
+
+			@Override
+			protected void createPlace(List<Symbol> alphabet, List<BigInteger> vector, PetriNet pn) {
+				Place place = pn.createPlace();
+				place.setInitialToken(vector.get(0).intValue());
+
+				int idx = 0;
+				for (Symbol sym : alphabet) {
+					Transition transition = pn.getTransition(sym.getEvent());
+					int forwardWeight = vector.get(1 + idx).intValue();
+					int backwardWeight = vector.get(1 + alphabet.size() + idx).intValue();
+					pn.createFlow(transition, place, forwardWeight);
+					pn.createFlow(place, transition, backwardWeight);
+
+					idx++;
+				}
+			}
+		};
+
+		abstract protected PolyhedralCone createCone(List<Symbol> alphabet);
+
+		abstract protected int[] getVectorFromPV(List<Symbol> alphabet, ParikhVector pv);
+
+		abstract protected int[] getVectorEnablingWord(List<Symbol> alphabet, ParikhVector pv, Symbol toEnable);
+
+		abstract protected void createPlace(List<Symbol> alphabet, List<BigInteger> vector, PetriNet pn);
+	}
+
 	/**
 	 * Calculate the minimal Petri net overapproximation of the regular language represented by the given finite
 	 * automaton. The resulting Petri net is unique up to language equivalence.
 	 * @param automaton The automaton to overapproximate.
+	 * @param mode The mode to use for generating the Petri net.
 	 * @return An overapproximating Petri net.
 	 */
-	static public PetriNet overapproximate(FiniteAutomaton automaton) {
+	static public PetriNet overapproximate(FiniteAutomaton automaton, Mode mode) {
 		// Prepare the automatons
 		DeterministicFiniteAutomaton dea = constructDFA(prefixClosure(automaton));
 		List<Symbol> alphabet = new ArrayList<>(dea.getAlphabet());
@@ -64,9 +187,9 @@ public class OverapproximateLanguage {
 		sigmaStar = constructDFA(kleeneStar(sigmaStar));
 
 		// Calculate the polyhedral cone
-		PolyhedralCone cone = getConeWithNonNegativeVariables(1 + 2*alphabet.size());
+		PolyhedralCone cone = mode.createCone(alphabet);
 		for (Symbol sym : alphabet) {
-			addInequalitiesFor(cone, alphabet, dea, sigmaStar, sym);
+			addInequalitiesFor(cone, mode, alphabet, dea, sigmaStar, sym);
 		}
 
 		// Generate a Petri net
@@ -79,70 +202,26 @@ public class OverapproximateLanguage {
 		debug("rays:");
 		for (List<BigInteger> ray : cone.findExtremalRays()) {
 			debug("  ", ray);
-			Place place = pn.createPlace();
-			place.setInitialToken(ray.get(0).intValue());
-
-			int idx = 0;
-			for (Symbol sym : alphabet) {
-				Transition transition = pn.getTransition(sym.getEvent());
-				int forwardWeight = ray.get(1 + idx).intValue();
-				int backwardWeight = ray.get(1 + alphabet.size() + idx).intValue();
-				pn.createFlow(transition, place, forwardWeight);
-				pn.createFlow(place, transition, backwardWeight);
-
-				idx++;
-			}
+			mode.createPlace(alphabet, ray, pn);
 		}
 
 		return pn;
 	}
 
-	static private void addInequalitiesFor(PolyhedralCone cone, List<Symbol> alphabet, DeterministicFiniteAutomaton dea, FiniteAutomaton sigmaStar, Symbol sym) {
+	static private void addInequalitiesFor(PolyhedralCone cone, Mode mode, List<Symbol> alphabet,
+			DeterministicFiniteAutomaton dea, FiniteAutomaton sigmaStar, Symbol sym) {
 		// Calculate an automaton for all words ending with the given symbol
 		dea = intersection(dea, constructDFA(concatenate(sigmaStar, getAtomicLanguage(sym))));
 
 		SemilinearSet set = FiniteAutomatonToSemilinearSet.toSemilinearSet(dea);
 		debugFormat("Words ending with %s are semi-linear set %s", sym, set);
 		for (LinearSet linear : set) {
-			int[] vector = getVectorFromPV(alphabet, linear.getConstantPart());
-			vector[0] = 1;
-			vector[1 + alphabet.indexOf(sym)] -= 1;
-			cone.addInequality(vector);
+			cone.addInequality(mode.getVectorEnablingWord(alphabet, linear.getConstantPart(), sym));
 
 			for (ParikhVector pv : linear.getRepeatedPart()) {
-				vector = getVectorFromPV(alphabet, pv);
-				cone.addInequality(vector);
+				cone.addInequality(mode.getVectorFromPV(alphabet, pv));
 			}
 		}
-	}
-
-	static private int[] getVectorFromPV(List<Symbol> alphabet, ParikhVector pv) {
-		int[] vector = new int[1 + 2*alphabet.size()];
-		Arrays.fill(vector, 0);
-
-		int index = 0;
-		for (Symbol sym : alphabet) {
-			int count = pv.get(sym.getEvent());
-			vector[1 + index] = count;
-			vector[1 + alphabet.size() + index] = -count;
-
-			index++;
-		}
-		return vector;
-	}
-
-	static private PolyhedralCone getConeWithNonNegativeVariables(int numVariables) {
-		PolyhedralCone cone = new PolyhedralCone(numVariables);
-		int[] inequality = new int[numVariables];
-		Arrays.fill(inequality, 0);
-
-		for (int i = 0; i < numVariables; i++) {
-			inequality[i] = 1;
-			cone.addInequality(inequality);
-			inequality[i] = 0;
-		}
-
-		return cone;
 	}
 }
 

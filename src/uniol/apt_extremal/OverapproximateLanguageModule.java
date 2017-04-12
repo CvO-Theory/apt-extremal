@@ -43,12 +43,19 @@ public class OverapproximateLanguageModule extends AbstractModule implements Mod
 	}
 
 	@Override
+	public String getLongDescription() {
+		return getShortDescription() + ".\n\n"
+			+ "Supported options is pure.";
+	}
+
+	@Override
 	public String getName() {
 		return "regular_overapproximate";
 	}
 
 	@Override
 	public void require(ModuleInputSpec inputSpec) {
+		inputSpec.addParameter("options", String.class, "Comma separated list of options");
 		inputSpec.addParameter("language", FiniteAutomaton.class, "The language that should be transformed");
 	}
 
@@ -60,14 +67,39 @@ public class OverapproximateLanguageModule extends AbstractModule implements Mod
 
 	@Override
 	public void run(ModuleInput input, ModuleOutput output) throws ModuleException {
+		boolean pure = parseOptions(input.getParameter("options", String.class));
 		FiniteAutomaton language = input.getParameter("language", FiniteAutomaton.class);
-		PetriNet pn = OverapproximateLanguage.overapproximate(language);
+		OverapproximateLanguage.Mode mode = pure ? OverapproximateLanguage.Mode.PURE
+			: OverapproximateLanguage.Mode.IMPURE;
+		PetriNet pn = OverapproximateLanguage.overapproximate(language, mode);
 		output.setReturnValue("pn", PetriNet.class, pn);
 	}
 
 	@Override
 	public Category[] getCategories() {
 		return new Category[]{Category.PN};
+	}
+
+	static private boolean parseOptions(String options) throws ModuleException {
+		// Explicitly allow empty string
+		options = options.trim();
+		if (options.isEmpty())
+			return false;
+
+		boolean pure = false;
+
+		for (String opt : options.split(",")) {
+			switch (opt.trim().toLowerCase()) {
+				case "none":
+					break;
+				case "pure":
+					pure = true;
+					break;
+				default:
+					throw new ModuleException("Cannot parse '" + opt + "': Unknown option");
+			}
+		}
+		return pure;
 	}
 }
 
