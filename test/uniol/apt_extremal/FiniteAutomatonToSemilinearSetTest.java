@@ -30,6 +30,7 @@ import static uniol.apt.adt.automaton.FiniteAutomatonUtility.*;
 import uniol.apt_extremal.util.LinearSet;
 import uniol.apt_extremal.util.SemilinearSet;
 import static uniol.apt_extremal.FiniteAutomatonToSemilinearSet.toSemilinearSet;
+import static uniol.apt_extremal.SemilinearSetEquivalenceMatcher.equivalentTo;
 
 public class FiniteAutomatonToSemilinearSetTest {
 	@Test
@@ -58,10 +59,38 @@ public class FiniteAutomatonToSemilinearSetTest {
 	}
 
 	@Test
+	public void testAPlus() {
+		FiniteAutomaton aut = kleenePlus(getAtomicLanguage(new Symbol("a")));
+		SemilinearSet set = SemilinearSet.containing(LinearSet.containingEvent("a").kleenePlus());
+		assertThat(toSemilinearSet(aut), equivalentTo(set));
+	}
+
+	@Test
+	public void testAStar() {
+		FiniteAutomaton aut = kleeneStar(getAtomicLanguage(new Symbol("a")));
+		SemilinearSet set = SemilinearSet.containingEvent("a").kleeneStar();
+		assertThat(toSemilinearSet(aut), equivalentTo(set));
+	}
+
+	@Test
 	public void testOptionalA() {
 		FiniteAutomaton aut = optional(getAtomicLanguage(new Symbol("a")));
 		SemilinearSet set = SemilinearSet.containingEvent("a").union(SemilinearSet.NULL);
 		assertThat(toSemilinearSet(aut), equalTo(set));
+	}
+
+	@Test
+	public void testComplicated() {
+		// Construct (a|ab)*
+		FiniteAutomaton a = getAtomicLanguage(new Symbol("a"));
+		FiniteAutomaton b = getAtomicLanguage(new Symbol("b"));
+		FiniteAutomaton aut = kleeneStar(union(a, concatenate(a, b)));
+
+		SemilinearSet sa = SemilinearSet.containingEvent("a");
+		SemilinearSet saa = SemilinearSet.containingEvent("a", 2);
+		SemilinearSet sb = SemilinearSet.containingEvent("b");
+		SemilinearSet set = sa.union(sa.concatenate(sb)).kleeneStar();
+		assertThat(toSemilinearSet(aut), equivalentTo(set));
 	}
 }
 
