@@ -173,9 +173,10 @@ public class OverapproximateLanguage {
 	 * automaton. The resulting Petri net is unique up to language equivalence.
 	 * @param automaton The automaton to overapproximate.
 	 * @param mode The mode to use for generating the Petri net.
+	 * @param bounded Only consider bounded Petri nets
 	 * @return An overapproximating Petri net.
 	 */
-	static public PetriNet overapproximate(FiniteAutomaton automaton, Mode mode) {
+	static public PetriNet overapproximate(FiniteAutomaton automaton, Mode mode, boolean bounded) {
 		// Prepare the automatons
 		DeterministicFiniteAutomaton dea = constructDFA(prefixClosure(automaton));
 		List<Symbol> alphabet = new ArrayList<>(dea.getAlphabet());
@@ -189,7 +190,7 @@ public class OverapproximateLanguage {
 		// Calculate the polyhedral cone
 		PolyhedralCone cone = mode.createCone(alphabet);
 		for (Symbol sym : alphabet) {
-			addInequalitiesFor(cone, mode, alphabet, dea, sigmaStar, sym);
+			addInequalitiesFor(cone, mode, alphabet, dea, sigmaStar, sym, bounded);
 		}
 
 		// Generate a Petri net
@@ -209,7 +210,7 @@ public class OverapproximateLanguage {
 	}
 
 	static private void addInequalitiesFor(PolyhedralCone cone, Mode mode, List<Symbol> alphabet,
-			DeterministicFiniteAutomaton dea, FiniteAutomaton sigmaStar, Symbol sym) {
+			DeterministicFiniteAutomaton dea, FiniteAutomaton sigmaStar, Symbol sym, boolean bounded) {
 		// Calculate an automaton for all words ending with the given symbol
 		dea = intersection(dea, constructDFA(concatenate(sigmaStar, getAtomicLanguage(sym))));
 
@@ -219,7 +220,13 @@ public class OverapproximateLanguage {
 			cone.addInequality(mode.getVectorEnablingWord(alphabet, linear.getConstantPart(), sym));
 
 			for (ParikhVector pv : linear.getRepeatedPart()) {
-				cone.addInequality(mode.getVectorFromPV(alphabet, pv));
+				int[] vector = mode.getVectorFromPV(alphabet, pv);
+				cone.addInequality(vector);
+				if (bounded) {
+					for (int i = 0; i < vector.length; i++)
+						vector[i] = -vector[i];
+					cone.addInequality(vector);
+				}
 			}
 		}
 	}

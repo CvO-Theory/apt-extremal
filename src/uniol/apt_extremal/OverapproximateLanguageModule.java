@@ -19,6 +19,7 @@
 
 package uniol.apt_extremal;
 
+import uniol.apt.util.Pair;
 import uniol.apt.adt.automaton.FiniteAutomaton;
 import uniol.apt.adt.pn.PetriNet;
 import uniol.apt.module.AbstractModule;
@@ -45,7 +46,7 @@ public class OverapproximateLanguageModule extends AbstractModule implements Mod
 	@Override
 	public String getLongDescription() {
 		return getShortDescription() + ".\n\n"
-			+ "Supported options is pure.";
+			+ "Supported options are pure and bounded.";
 	}
 
 	@Override
@@ -67,11 +68,12 @@ public class OverapproximateLanguageModule extends AbstractModule implements Mod
 
 	@Override
 	public void run(ModuleInput input, ModuleOutput output) throws ModuleException {
-		boolean pure = parseOptions(input.getParameter("options", String.class));
+		Pair<Boolean, Boolean> options = parseOptions(input.getParameter("options", String.class));
 		FiniteAutomaton language = input.getParameter("language", FiniteAutomaton.class);
-		OverapproximateLanguage.Mode mode = pure ? OverapproximateLanguage.Mode.PURE
+		boolean bounded = options.getSecond();
+		OverapproximateLanguage.Mode mode = options.getFirst() ? OverapproximateLanguage.Mode.PURE
 			: OverapproximateLanguage.Mode.IMPURE;
-		PetriNet pn = OverapproximateLanguage.overapproximate(language, mode);
+		PetriNet pn = OverapproximateLanguage.overapproximate(language, mode, bounded);
 		output.setReturnValue("pn", PetriNet.class, pn);
 	}
 
@@ -80,13 +82,14 @@ public class OverapproximateLanguageModule extends AbstractModule implements Mod
 		return new Category[]{Category.PN};
 	}
 
-	static private boolean parseOptions(String options) throws ModuleException {
+	static private Pair<Boolean, Boolean> parseOptions(String options) throws ModuleException {
 		// Explicitly allow empty string
 		options = options.trim();
 		if (options.isEmpty())
-			return false;
+			return new Pair<Boolean, Boolean>(false, false);
 
 		boolean pure = false;
+		boolean bounded = false;
 
 		for (String opt : options.split(",")) {
 			switch (opt.trim().toLowerCase()) {
@@ -95,11 +98,14 @@ public class OverapproximateLanguageModule extends AbstractModule implements Mod
 				case "pure":
 					pure = true;
 					break;
+				case "bounded":
+					bounded = true;
+					break;
 				default:
 					throw new ModuleException("Cannot parse '" + opt + "': Unknown option");
 			}
 		}
-		return pure;
+		return new Pair<Boolean, Boolean>(pure, bounded);
 	}
 }
 
